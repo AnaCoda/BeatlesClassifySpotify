@@ -13,19 +13,19 @@ scope = 'user-library-read'
 raw_data = pd.read_excel(R'TheBeatlesData.xlsx')
 
 # Get the relevant columns from the data and turn it into a Pandas dataframe
-SongInfo = pd.DataFrame(raw_data, columns=['song', 'album', 'danceability', 'energy', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo'])
+SongInfo = pd.DataFrame(raw_data, columns=['song', 'album', 'danceability', 'energy', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence'])
 
 # Album names
 Albums = SongInfo.iloc[:,1]
 # Song names
 Songs = SongInfo.iloc[:,0]
 # Song metrics (danceability, tempo, etc.)
-X = SongInfo.iloc[:,2:10]
+X = SongInfo.iloc[:,2:9]
 
 # Get the audio features of a track (can just paste Spotify URL) and turn it into Pandas Dataframe
 songFeatures = pd.DataFrame.from_dict(sp.audio_features(tracks=['https://open.spotify.com/track/0eI5SOdxDTSEGkUppeWKls']))
 # Only keep the metrics
-songFeatures = songFeatures[['danceability', 'energy', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo']]
+songFeatures = songFeatures[['danceability', 'energy', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence']]
 
 # Create a song dataframe with the song names
 ySong = pd.DataFrame()
@@ -47,14 +47,27 @@ neighSong.fit(X, ySong.cats.ravel())
 neighAlbum = KNeighborsClassifier(n_neighbors=5)
 neighAlbum.fit(X, yAlbums.cats.ravel())
 
-# Find the ID of the closest song and album
-ClosestSong = neighSong.predict(songFeatures)[0]
-ClosestAlbum = neighAlbum.predict(songFeatures)[0]
+while True:
+    spotTrack = input("Enter song URL: ")
+    # Get the audio features of a track (can just paste Spotify URL) and turn it into Pandas Dataframe
+    songFeatures = pd.DataFrame.from_dict(sp.audio_features(tracks=[spotTrack]))
+    # Only keep the metrics
+    songFeatures = songFeatures[['danceability', 'energy', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence']]
 
-# Predict the probability of the nearest album to print
-ClosestAlbumProb = neighAlbum.predict_proba(songFeatures)
-probNum = ClosestAlbumProb[0][ClosestAlbum]
+    # Find the ID of the closest song and album
+    ClosestSong = neighSong.predict(songFeatures)[0]
+    ClosestAlbum = neighAlbum.predict(songFeatures)[0]
 
-# Print the results
-print('The nearest Beatles song is: ' + ySong.loc[ySong['cats'] == ClosestSong].song.iloc[0])
-print('The nearest Beatles album is: ' + yAlbums.loc[yAlbums['cats'] == ClosestAlbum].album.iloc[0] + ', with ' + str(probNum * 100) + '% probability' )
+    # Predict the probability of the nearest album to print
+    ClosestAlbumProb = neighAlbum.predict_proba(songFeatures)
+    probNum = ClosestAlbumProb[0][ClosestAlbum]
+
+    songName = ySong.loc[ySong['cats'] == ClosestSong].song.iloc[0]
+    albumName = yAlbums.loc[yAlbums['cats'] == ClosestAlbum].album.iloc[0]
+    # Print the results
+    print('The nearest Beatles song is: ' + songName)
+    print('The nearest Beatles album is: ' + albumName + ', with ' + str(probNum * 100) + '% probability' )
+    print('Your song\'s features: ')
+    print(songFeatures)
+    print(songName + '\'s features: ')
+    print(SongInfo.loc[SongInfo['song'] == songName].iloc[:,2:10])
